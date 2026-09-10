@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual environment
+venv/
+env/
+.env
+
+# Data files (too large for git)
+data/raw/
+data/processed/*.csv
+!data/processed/.gitkeep
+
+# API keys
+.env
+kaggle.json
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Embeddings cache
+data/embeddings/
+*.faiss
+*.npy
