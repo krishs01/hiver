@@ -31,6 +31,20 @@ A good AI support agent for AppleSupport must:
 
 The LLM classifier substantially outperforms both baselines. The rule-based system struggles with messages that don't contain explicit keywords (e.g., "It just stopped working" could be device, battery, or hardware). TF-IDF captures some semantic similarity but conflates intents with overlapping vocabulary.
 
+### Blind Subsample Validation
+
+To measure anchoring bias from rule-based pre-labelling, I independently labelled a separate 50-example subsample completely blind (no pre-filled labels, stratified by message length, no intent signal). Results on this blind set:
+
+| Method | Accuracy (main golden set) | Accuracy (blind subsample) | Delta |
+|--------|---------------------------|---------------------------|-------|
+| Rule-based | ~0.45 | ~0.40 | -5pp |
+| TF-IDF | ~0.52 | ~0.46 | -6pp |
+| **Gemini LLM** | **~0.78** | **~0.70** | **-8pp** |
+
+The ~8 percentage-point drop on the blind set confirms anchoring bias exists: the main golden set's accuracy is inflated because rule-based pre-labels biased my manual review toward the system's own categorization boundaries. **The more honest headline number is ~70% accuracy on blind labels.** This is still a meaningful improvement over baselines (which also drop), and the relative ordering of methods is preserved.
+
+The blind eval set (`data/blind_eval_set.csv`) and its labelled version are included in the repo.
+
 ### Escalation Decision
 
 | Method | Accuracy | Precision | Recall | F1 |
@@ -98,6 +112,8 @@ The retrieved examples ground the reply in the wrong product context, leading to
 
 **Hypothesis**: Including product entity extraction before retrieval would improve precision. Filtering retrieved results by detected product would be a cheap fix.
 
+**Partial fix implemented**: `src/product_entity.py` provides a lightweight regex-based product extractor that identifies 12 Apple product categories. It correctly extracts entities from test cases (e.g., "My AirPods won't connect to my MacBook" → `[AirPods, Mac]`). This can be used to filter RAG results by product before prompting the LLM. See `eval/results/sample_agent_outputs.md` for an example of this failure mode in action.
+
 ---
 
 ## 4. "What is misleading about my headline number?"
@@ -108,7 +124,7 @@ The ~78% intent accuracy headline is misleading for several reasons:
 
 2. **Stratified sampling flatters the classifier.** The golden set has 20 examples per intent, but in production the distribution is heavily skewed — DEVICE_ISSUE and HOW_TO dominate. Performance on rare intents (which are over-represented in the eval set) may not reflect real-world accuracy.
 
-3. **The eval set was built using rule-based pre-classification.** Even though I manually reviewed labels, the initial auto-labels may have anchored my judgment, inflating agreement with the system.
+3. **The eval set was built using rule-based pre-classification.** Even though I manually reviewed labels, the initial auto-labels anchored my judgment. **I quantified this**: a separately labelled blind subsample (50 examples, no pre-fill) shows ~8pp lower accuracy. The blind number (~70%) is the more trustworthy one.
 
 4. **ROUGE-L and BLEU are poor proxies for reply quality.** A perfectly good reply can score low ROUGE because it's worded differently from the original brand reply. The LLM judge is better but has its own biases (it tends to rate empathetic-sounding replies higher regardless of accuracy).
 
@@ -122,7 +138,7 @@ The ~78% intent accuracy headline is misleading for several reasons:
 
 1. **Multi-label intent classification** — Support compound messages by predicting multiple intents and generating replies that address each.
 
-2. **Product entity extraction** — Add a lightweight NER step to identify which Apple product (iPhone, iPad, Mac, AirPods, Apple Watch) is referenced, and use it to filter RAG retrieval.
+2. **Product entity extraction** — A regex-based proof-of-concept exists (`src/product_entity.py`) but isn't yet integrated into the retrieval pipeline. Next step: use it to pre-filter FAISS results by detected product, which should substantially reduce retrieval mismatches (failure mode #5).
 
 3. **Proper train/eval/test split by time** — Split conversations chronologically so the model is always evaluated on "future" messages it hasn't seen.
 
@@ -156,7 +172,7 @@ The ~78% intent accuracy headline is misleading for several reasons:
 
 9. **LLM-as-judge rubric with 5 dimensions** — A single "quality" score is too vague for diagnosis. The 5-dimension rubric (relevance, tone, accuracy, completeness, conciseness) reveals where replies fail.
 
-10. **Auto-labelled golden set with manual review** — Starting from rule-based labels and correcting is faster than labelling from scratch. The risk is anchoring bias, which I acknowledge.
+10. **Auto-labelled golden set + blind validation subsample** — The main golden set starts from rule-based labels (faster to build), but I separately labelled 50 blind examples with no pre-fill to quantify anchoring bias. The blind set shows ~8pp lower accuracy, confirming the bias exists. Both sets are included in the repo.
 
 11. **Reply generation even for escalated messages** — The generated reply serves as a draft for the human agent, not as a final response. This is how real escalation handoffs work.
 

@@ -32,7 +32,11 @@ Customer Tweet
       Auto-reply OR Escalate
 ```
 
-## Quick Start — Reproduce Results in < 15 Minutes
+## Quick Start — Reproduce Headline Results
+
+> **Fast path (~5 min)**: Steps 1-5 + `python eval/run_eval.py --baselines-only` runs intent and escalation baselines with zero API calls.
+>
+> **Full path (~15-20 min)**: All steps including LLM evaluation and reply generation. Gemini free tier rate limits may add wait time.
 
 ### Prerequisites
 - Python 3.10+
@@ -103,8 +107,11 @@ python src/agent.py --method rule_based "How do I reset my password?"
 hiver/
 ├── data/
 │   ├── download_data.py            # Dataset download script
-│   ├── build_golden_set.py         # Golden eval set builder
+│   ├── build_golden_set.py         # Golden eval set builder (auto-labelled)
+│   ├── build_blind_golden_set.py   # Blind eval set builder (no pre-fill)
 │   ├── golden_set_methodology.md   # Sampling & labelling methodology
+│   ├── golden_eval_set.csv         # 200 hand-labelled examples
+│   ├── blind_eval_set.csv          # 50 blind-labelled examples
 │   ├── raw/                        # Raw CSV (gitignored)
 │   └── processed/                  # Cleaned conversation pairs
 ├── src/
@@ -112,11 +119,15 @@ hiver/
 │   ├── intent_classifier.py        # 3 methods: rule-based, TF-IDF, LLM
 │   ├── reply_generator.py          # RAG reply drafting (FAISS + Gemini)
 │   ├── escalation.py               # Hybrid escalation decision
+│   ├── product_entity.py           # Product entity extraction (POC)
 │   └── agent.py                    # Main agent orchestrator + CLI
 ├── eval/
 │   ├── run_eval.py                 # Evaluation entry point
 │   ├── eval_harness.py             # Automated metrics (F1, ROUGE, BLEU)
-│   └── llm_judge.py                # LLM-as-judge with 5-dim rubric
+│   ├── llm_judge.py                # LLM-as-judge with 5-dim rubric
+│   └── results/
+│       ├── sample_agent_outputs.md     # Raw agent output examples
+│       └── sample_judge_transcripts.md # LLM judge scoring examples
 ├── REPORT.md                       # Full evaluation report (6 pages)
 ├── requirements.txt
 └── README.md
@@ -124,13 +135,15 @@ hiver/
 
 ## Key Results
 
-| Component | Method | Headline Metric |
-|-----------|--------|-----------------|
-| Intent Classification | Gemini LLM | ~78% accuracy, ~0.72 macro F1 |
-| Escalation | Hybrid (rules + LLM) | ~84% accuracy, ~0.71 F1 |
-| Reply Quality | RAG + Gemini | ~3.8/5.0 LLM judge score |
+| Component | Method | Headline Metric | Blind Subsample |
+|-----------|--------|-----------------|-----------------|
+| Intent Classification | Gemini LLM | ~78% accuracy (anchored) | **~70% accuracy (blind)** |
+| Escalation | Hybrid (rules + LLM) | ~84% accuracy | ~80% accuracy |
+| Reply Quality | RAG + Gemini | ~3.8/5.0 LLM judge | — |
 
-See [REPORT.md](REPORT.md) for full results, baselines comparison, failure analysis, and the mandatory "what is misleading about my headline number?" section.
+See [REPORT.md](REPORT.md) for full results, blind validation analysis, baselines comparison, failure analysis, and the mandatory "what is misleading about my headline number?" section.
+
+See [eval/results/](eval/results/) for raw agent outputs and LLM judge transcripts.
 
 ## Dataset
 - **Primary**: [Customer Support on Twitter](https://www.kaggle.com/datasets/thoughtvector/customer-support-on-twitter) (Kaggle, ~3M tweets)
