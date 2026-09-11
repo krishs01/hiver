@@ -132,8 +132,8 @@ def build_golden_set(
     output_df.to_csv(output_path, index=False)
     print(f"\n[OK] Golden eval set saved to {output_path}")
     print(f"     Total examples: {len(output_df)}")
-    print(f"\n⚠️  IMPORTANT: The labels are AUTO-GENERATED starting points.")
-    print(f"     You MUST manually review and correct them before evaluation.")
+    print(f"\n[!] IMPORTANT: The labels are AUTO-GENERATED starting points.")
+    print(f"    You MUST manually review and correct them before evaluation.")
     
     # Print distribution
     print(f"\n  Intent distribution:")

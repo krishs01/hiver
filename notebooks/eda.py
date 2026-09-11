@@ -164,13 +164,14 @@ def analyze_sample_conversations(df: pd.DataFrame, n: int = 10) -> str:
     
     for idx, (_, row) in enumerate(samples.iterrows(), 1):
         output.append(f"\n--- Example {idx} ---")
-        if row.get("prior_context") and str(row["prior_context"]).strip():
-            output.append(f"  [Prior Context]: {row['prior_context'][:200]}")
+        ctx = row.get("prior_context")
+        if ctx and isinstance(ctx, str) and ctx.strip():
+            output.append(f"  [Prior Context]: {ctx[:200]}")
         output.append(f"  [Customer]: {row['customer_text_clean'][:300]}")
         output.append(f"  [Brand]:    {row['brand_text_clean'][:300]}")
     
     result = "\n".join(output)
-    print(result)
+    print(result.encode("ascii", errors="replace").decode("ascii"))
     return result
 
 
